@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+**/.venv/
+.env
+
+# React / Node
+node_modules/
+dist/
+build/
+
+# PlatformIO
+.pio/
+.vscode/
+
+# IDE
+.idea/
+
+# OS
+.DS_Store
