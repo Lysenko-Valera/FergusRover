@@ -12,18 +12,17 @@ HandlerResult ProtocolHandler::handle(const String& json) {
         return result;
     }
 
-    // Step 2: Determine whether this message requires an ACK.
+    // Step 2: Determine whether an ACK is required.
     result.ackRequired =
         result.message.type == MessageType::Stop ||
         result.message.type == MessageType::ClearFault;
 
-    // Step 3: Validate the parsed message.
+    // Step 3: Validate the incoming message.
     RejectionReason reason = RejectionReason::None;
 
     result.valid = validator.validate(result.message, reason);
 
     if (!result.valid) {
-        // Send a rejection ACK only if the sequence number is available.
         if (result.ackRequired && result.message.hasSeqNum) {
             result.ack.version = 1;
             result.ack.seqNum = result.message.seqNum;
@@ -36,13 +35,31 @@ HandlerResult ProtocolHandler::handle(const String& json) {
         return result;
     }
 
-    // Step 4: Mark the command as ready for the next layer.
-    result.commandReady = true;
+    // Step 4: Dispatch the validated command.
+    result.commandReady = dispatcher.dispatch(result.message);
 
-    // A final ACK for stop/clear_fault will be prepared
-    // after the Control Layer processes the command.
+    // Step 5: Build ACK after command processing.
+    if (result.ackRequired && result.message.hasSeqNum) {
+        result.ack.version = 1;
+        result.ack.seqNum = result.message.seqNum;
+
+        if (result.commandReady) {
+            result.ack.status = AckStatus::Accepted;
+            result.ack.reason = RejectionReason::None;
+        } else {
+            result.ack.status = AckStatus::Rejected;
+            result.ack.reason = RejectionReason::InvalidState;
+        }
+
+        result.ackReady = true;
+    }
 
     return result;
+}
+
+void ProtocolHandler::update() {
+    // Update the Safety Layer.
+    dispatcher.update();
 }
 
 }

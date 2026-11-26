@@ -3,11 +3,9 @@
 #include "communication/uart_transport.h"
 #include "communication/protocol/protocol_handler.h"
 
-
 // Communication objects.
 UartTransport uart;
 Protocol::ProtocolHandler protocolHandler;
-
 
 void setup() {
     // Initialize USB serial for debugging.
@@ -18,10 +16,13 @@ void setup() {
 
     Serial.println("Rover started");
     Serial.println("Protocol Layer initialized");
+    Serial.println("Safety Layer initialized");
 }
 
-
 void loop() {
+    // Check safety conditions on every loop iteration.
+    protocolHandler.update();
+
     String message;
 
     // Check for a complete incoming UART message.
@@ -33,19 +34,15 @@ void loop() {
         // Process the incoming JSON message.
         Protocol::HandlerResult result = protocolHandler.handle(message);
 
-        // Print parsing result.
         Serial.print("Parsed: ");
         Serial.println(result.parsed ? "YES" : "NO");
 
-        // Print validation result.
         Serial.print("Valid: ");
         Serial.println(result.valid ? "YES" : "NO");
 
-        // Print command readiness.
         Serial.print("Command ready: ");
         Serial.println(result.commandReady ? "YES" : "NO");
 
-        // Print ACK requirement.
         Serial.print("ACK required: ");
         Serial.println(result.ackRequired ? "YES" : "NO");
 
